@@ -79,6 +79,41 @@ def test_king_without_check():
     valid_moves = king.list_moves()
     assert valid_moves == {(4, 4), (4, 3), (5, 4), (6, 4), (6, 3)}
 
+def test_move_piece():
+    board.move_piece((5, 2), (5, 4))
+    print(board.display_board())
+    assert board.board[(5, 4)].symbol == 'P'
+    assert not board.board.get((5, 2))
+
+def test_move_wrong_color():
+    assert not board.move_piece((5, 4), (5, 5))
+
+def test_move_exposing_king():
+    board.move_piece((1, 7), (1, 6))
+    board.move_piece((6, 1), (2, 5))
+    print(board.display_board())
+    board.move_piece((4, 7), (4, 6))
+    print(board.display_board())
+    assert board.board[(4, 7)].symbol == 'p'
+    assert not board.board.get((4, 6))
+
+def test_move_checks_opponent():
+    board.move_piece((6, 7), (6, 6))
+    board.move_piece((4, 1), (8, 5))
+    print(board.move_history)
+    print(board.display_board())
+    assert board.move_history[-1][4] #looks at last move in history and sees if check
+
+def test_move_king_into_check():
+    board.move_piece((5, 8), (6, 7))
+    print(board.display_board())
+    assert board.board[(5, 8)].symbol == 'k'
+
+def test_move_to_shield_king():
+    board.move_piece((7, 7), (7, 6))
+    print(board.display_board())
+    assert board.board[(7, 6)].symbol == 'p'
+
 #take piece that would check
 #check test king move
 #check test exposing king

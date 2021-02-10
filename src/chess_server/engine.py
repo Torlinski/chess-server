@@ -1,15 +1,19 @@
 import logging
+from copy import deepcopy
 
 WHITE="white"
 BLACK="black"
 CARDINALS = ((1, 0), (0, -1), (-1, 0), (0, 1))
 DIAGONALS = ((1, 1), (1, -1), (-1, -1), (-1, 1))
 PIECES = ["P", "R", "C", "B", "Q", "K"]
+logging.basicConfig(level=logging.DEBUG)
 
 class Board:
     def __init__(self):
+        logging.debug("Board initialising")
         self.reset_board()
-        self.last_moved = BLACK
+        self.last_moved_color = BLACK
+        self.move_history = []
 
     def reset_board(self):
         """
@@ -48,12 +52,9 @@ class Board:
             self.board[(x, 7)] = Pawn(self.board, BLACK, (x, 7))
             self.board[(x, 8)] = piece(self.board, BLACK, (x, 8))
 
-        self.king_white = self.board[(5, 1)]
-        self.king_black = self.board[(5, 8)]
-
-    def verify_move(self, from_pos, to_pos):
+    def move_piece(self, from_pos, to_pos):
         """
-        Verifies whether a move is valid
+        Moves piece if move is valid with piece + check rules
 
         Arguments:
             from_pos: tuple in form (x, y) where x is current column of the 
@@ -62,17 +63,82 @@ class Board:
                 piece and y is the desired row of the piece, both int 1-8
 
         Returns:
-            True/False
+            True/False if piece was moved successfully
 
         """
-        if not self.board[from_pos]:
-            logger.debug("No piece in from position")
+        if not self.board.get(from_pos):
+            logging.debug("No piece in from position")
             return False
-        if self.board[from_pos].color == self.last_moved:
-            logger.debug("Attempting to move wrong color")
+        if self.board[from_pos].color == self.last_moved_color:
+            logging.debug("Attempting to move wrong color")
+            return False
+        if self.board[from_pos].verify_move(to_pos):
+            logging.debug(f"Move from {from_pos} to {to_pos} in piece valid moves")
+            #going to try move and revert if puts king in check
+            Board_copy = deepcopy(self)
+            Board_copy.board[to_pos] = Board_copy.board[from_pos]
+            Board_copy.board[to_pos].pos = to_pos
+            del Board_copy.board[from_pos]
+            Board_copy.last_moved_color = Board_copy.board[to_pos].color
+            if not Board_copy.king_in_check(Board_copy.last_moved_color):
+                logging.debug(f"Move does not place own king in check")
+                check_enemy = Board_copy.king_in_check(self.last_moved_color)
+                self.add_to_history(from_pos, to_pos, check_enemy)
+                self.board = Board_copy.board
+                self.last_moved_color = Board_copy.last_moved_color
+                return True
+            logging.debug(f"Move places own king in check")
             return False
 
-        return self.board[from_pos].verify_move(to_pos)
+    def add_to_history(self, from_pos, to_pos, check_enemy_king):
+        """
+        Adds to move_history, appends:
+            original position tuple,
+            select piece symbol,
+            target position tuple,
+            target position occupant (if any),
+            Bool whether enemy king is put in check
+        """
+        self.move_history.append([
+            from_pos,
+            self.board[from_pos].symbol,
+            to_pos,
+            self.board[to_pos].symbol if self.board.get(to_pos) else None,
+            check_enemy_king
+        ])
+
+    def king_in_check(self, color):
+        """
+        Returns True if a king of a certain color is in check
+        """
+        if color == WHITE:
+            king_pos = self.find_piece("K")
+        if color == BLACK:
+            king_pos = self.find_piece("k")
+        return self._position_in_check(king_pos, color)
+
+    def find_piece(self, symbol):
+        """
+        Returns position tuple of first piece with said symbol
+        """
+        for piece in self.board.values():
+            if piece.symbol == symbol:
+                return piece.pos
+
+    def _position_in_check(self, pos, color):
+        """
+        Return True if a position would be in check for a king of a certain color
+        """
+        for piece in self.board.values():
+            if color == WHITE:
+                if piece.color == BLACK:
+                    if piece.verify_move(pos):
+                        return True
+            if color == BLACK:
+                if piece.color == WHITE:
+                    if piece.verify_move(pos):
+                        return True
+        return False
 
     def display_board(self):
         """
@@ -116,53 +182,6 @@ class Board:
             rows.append(row)
         return rows
 
-    def king_in_check(self, color):
-        # more efficient method is to scan outwards from the king and
-        # check for knights, but this is simpler
-        """
-        Returns True if a king of a certain color is in check
-        """
-        if color == WHITE:
-            king_pos = self.king_white.pos
-        if color == BLACK:
-            king_pos = self.king_black.pos
-        return self._position_in_check(king_pos, color)
-
-    def _position_in_check(self, pos, color):
-        """
-        Return True if a position would be in check for a king of a certain color
-        """
-        #should be scanning out from the position
-
-        #Imaginary king in said position (used for things like castling)
-        CARDINAL_THREATS_LONG = {WHITE: ['r', 'q']],
-                                 BLACK: ['R', 'Q']]}
-        CARDINAL_THREATS_SHORT = {WHITE: ['k']],
-                                  BLACK: ['K']]}
-        DIAGONAL_THREATS_LONG = {WHITE: ['b', 'q'],
-                                 BLACK: ['B', 'Q']}
-        DIAGONAL_THREATS_SHORT = {WHITE: ['k', 'p'],
-                                  BLACK: ['K', 'P']}
-        king = King(self.board, color, pos)
-
-        for direction in CARDINALS:
-            scan_results = list(king.scan_direction(direction))
-            for pos in scan_results:
-                if self.board.get(pos): #not empty
-                    if self.board[pos].symbol in (CARDINAL_THREATS[color]):
-                        if 
-
-        for pos, piece in self.board.items():
-            if color == WHITE:
-                if piece.symbol.islower():
-                    if piece.verify_move(pos):
-                        return True
-            if color == BLACK:
-                if piece.symbol.isupper():
-                    if piece.verify_move(pos):
-                        return True
-        return False
-
 class Piece:
     def __init__(self, board, color, pos):
         self.board = board
@@ -172,6 +191,7 @@ class Piece:
     def verify_move(self, to_pos):
         """
         Returns True if move in list of moves. List of moves specific to type of piece.
+        Doesn't take check into account.
         """
         #need to check for check
         if to_pos in self.list_moves():
@@ -219,46 +239,6 @@ class Piece:
             valid_moves.add(pos)
         return valid_moves
 
-    def scan_king_direction(self, direction):
-
-
-    def shielding_king(self):
-        """
-        Returns possible moves to that keep shielding the king,
-        protecting him from check, or False if not shielding
-
-        Returns:
-            list of possible moves that prevent check
-            or False if not shielding
-        """
-        if self.color == WHITE:
-            cardinal_threats = ['r', 'q']
-            diagonal_threats = ['b', 'q']
-        elif self.color == BLACK:
-            cardinal_threats = ['R', 'Q']
-            diagonal_threats = ['B', 'Q']
-        for direction in CARDINALS:
-            if self.scan_king_direction(direction):#if alligned with king
-                king_scan = self.scan_king_direction(direction)
-                opposite_direction = (component*-1 for component in direction)
-                enemy_scan = self.scan_direction(opposite_direction)
-                for pos in list(scan_results):
-                    if self.board.get(pos):
-                        if self.board[pos].symbol in cardinal_threats:
-                            return king_scan + enemy_scan
-                return False
-
-        for direction in DIAGONALS:
-            if self.scan_king_direction(direction):#if alligned with king
-                king_scan = self.scan_king_direction(direction)
-                opposite_direction = (component*-1 for component in direction)
-                enemy_scan = self.scan_direction(opposite_direction)
-                for pos in list(scan_results):
-                    if self.board.get(pos):
-                        if self.board[pos].symbol in diagonal_threats:
-                            return king_scan + enemy_scan
-                return False
-        
     @staticmethod
     def _in_bounds(pos):
         """
@@ -288,7 +268,8 @@ class Pawn(Piece):
         move_pos = (self.pos[0], self.pos[1] + color_direction)
         if not self.board.get(move_pos): #if space in front empty
             valid_moves.add(move_pos)
-            if self.pos[1] == starting_row: #pawns can move double if not moved previously and empty
+            #pawns can move double if not moved previously and empty
+            if self.pos[1] == starting_row: 
                 move_pos = (self.pos[0], self.pos[1] + 2*color_direction)
                 if not self.board.get(move_pos):
                     valid_moves.add(move_pos)
