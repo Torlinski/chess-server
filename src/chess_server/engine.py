@@ -48,6 +48,9 @@ class Board:
             self.board[(x, 7)] = Pawn(self.board, BLACK, (x, 7))
             self.board[(x, 8)] = piece(self.board, BLACK, (x, 8))
 
+        self.king_white = self.board[(5, 1)]
+        self.king_black = self.board[(5, 8)]
+
     def verify_move(self, from_pos, to_pos):
         """
         Verifies whether a move is valid
@@ -120,15 +123,16 @@ class Board:
         Returns True if a king of a certain color is in check
         """
         if color == WHITE:
-            king_pos = _locate_piece("K")
+            king_pos = self.king_white.pos
         if color == BLACK:
-            king_pos = _locate_piece("k")
+            king_pos = self.king_black.pos
         return self._position_in_check(king_pos, color)
 
     def _position_in_check(self, pos, color):
         """
         Return True if a position would be in check for a king of a certain color
         """
+        #should be scanning out from the position
         for pos, piece in self.board.items():
             if color == WHITE:
                 if piece.symbol.islower():
@@ -140,56 +144,47 @@ class Board:
                         return True
         return False
 
-    def _locate_piece(self, symbol):
-        for pos, piece in self.board.items():
-            if piece.symbol == symbol:
-                return pos
-            
-
-
 class Piece:
     def __init__(self, board, color, pos):
         self.board = board
         self.color = color
         self.pos = pos
 
-    def verify_move(self, from_pos, to_pos):
+    def verify_move(self, to_pos):
         """
         Returns True if move in list of moves. List of moves specific to type of piece.
         """
         #need to check for check
-        if to_pos in self.list_moves(from_pos):
+        if to_pos in self.list_moves():
             return True
         return False
 
-    def verify_square(self, pos):
+    def verify_square(self, square):
         """
         Returns True if target square is valid for piece of certain color.
         """
-        if not self._in_bounds(pos):
+        if not self._in_bounds(square):
             return False
-        if not self.board.get(pos): #empty
+        if not self.board.get(square): #empty
             return True
-        if self.board[pos].color != self.color: #enemy
+        if self.board[square].color != self.color: #enemy
             return True
 
-    def empty_square(self, pos):
+    def empty_square(self, square):
         """
         Returns True if target square is valid and empty.
         """
-        if not self._in_bounds(pos):
+        if not self._in_bounds(square):
             return False
-        if self.board.get(pos):
+        if self.board.get(square):
             return False
         return True
 
-    def scan_direction(self, pos, direction):
+    def scan_direction(self, direction):
         """
         Finds valid squares in a direction
 
         Parameters:
-            pos: tuple in form (x, y) where x is current column of the 
-                piece and y is the current row of the piece, both int 1-8
             direction: tuple in form (x, y). Both int of -1, 0 or 1
 
         Returns:
@@ -197,7 +192,7 @@ class Piece:
                 and either empty or containing the first enemy piece
         """
         valid_moves = set()
-        pos = (pos[0] + direction[0], pos[1] + direction[1])
+        pos = (self.pos[0] + direction[0], self.pos[1] + direction[1])
         while self.empty_square(pos):
             valid_moves.add(pos)
             pos = (pos[0] + direction[0], pos[1] + direction[1])
@@ -206,7 +201,8 @@ class Piece:
 
         return valid_moves
 
-    def shielding_king(self, )
+    def shielding_king(self):
+        pass
         
     @staticmethod
     def _in_bounds(pos):
@@ -218,14 +214,14 @@ class Piece:
         return True
 
 class Pawn(Piece):
-    def __init__(self, board, color):
-        super().__init__(board, color)
+    def __init__(self, board, color, pos):
+        super().__init__(board, color, pos)
         if color == WHITE:
             self.symbol = "P"
         elif color == BLACK:
             self.symbol = "p"
 
-    def list_moves(self, from_pos):
+    def list_moves(self):
         valid_moves = set()
         if self.color == WHITE:
             color_direction = 1
@@ -234,16 +230,16 @@ class Pawn(Piece):
             color_direction = -1
             starting_row = 7
 
-        move_pos = (from_pos[0], from_pos[1] + color_direction)
+        move_pos = (self.pos[0], self.pos[1] + color_direction)
         if not self.board.get(move_pos): #if space in front empty
             valid_moves.add(move_pos)
-            if from_pos[1] == starting_row: #pawns can move double if not moved previously and empty
-                move_pos = (from_pos[0], from_pos[1] + 2*color_direction)
+            if self.pos[1] == starting_row: #pawns can move double if not moved previously and empty
+                move_pos = (self.pos[0], self.pos[1] + 2*color_direction)
                 if not self.board.get(move_pos):
                     valid_moves.add(move_pos)
 
-        take_pos_tuple = ((from_pos[0] + 1, from_pos[1] + color_direction),
-                          (from_pos[0] - 1, from_pos[1] + color_direction))
+        take_pos_tuple = ((self.pos[0] + 1, self.pos[1] + color_direction),
+                          (self.pos[0] - 1, self.pos[1] + color_direction))
         for take_pos in take_pos_tuple:
             if self.board.get(take_pos):
                 if self.board[take_pos].color != self.color:
@@ -252,79 +248,79 @@ class Pawn(Piece):
         return valid_moves
 
 class Rook(Piece):
-    def __init__(self, board, color):
-        super().__init__(board, color)
+    def __init__(self, board, color, pos):
+        super().__init__(board, color, pos)
         if color == WHITE:
             self.symbol = "R"
         elif color == BLACK:
             self.symbol = "r"
 
-    def list_moves(self, from_pos):
+    def list_moves(self):
         valid_moves = set()
         for direction in CARDINALS:
-            valid_moves.update(self.scan_direction(from_pos, direction))
+            valid_moves.update(self.scan_direction(direction))
         return valid_moves
 
 class Knight(Piece):
-    def __init__(self, board, color):
-        super().__init__(board, color)
+    def __init__(self, board, color, pos):
+        super().__init__(board, color, pos)
         if color == WHITE:
             self.symbol = "C"
         elif color == BLACK:
             self.symbol = "c"
 
-    def list_moves(self, from_pos):
+    def list_moves(self):
         valid_moves = set()
         knight_moves = [
                 (1, 2), (2, 1), (2, -1), (1, -2),
                 (-1, -2), (-2, -1), (-2, 1), (-1, 2)
                 ]
         for move in knight_moves:
-            target_pos = (from_pos[0] + move[0], from_pos[1] + move[1])
+            target_pos = (self.pos[0] + move[0], self.pos[1] + move[1])
             if self.verify_square(target_pos):
                 valid_moves.add(target_pos)
         return valid_moves
 
 class Bishop(Piece):
-    def __init__(self, board, color):
-        super().__init__(board, color)
+    def __init__(self, board, color, pos):
+        super().__init__(board, color, pos)
         if color == WHITE:
             self.symbol = "B"
         elif color == BLACK:
             self.symbol = "b"
 
-    def list_moves(self, from_pos):
+    def list_moves(self):
         valid_moves = set()
         for direction in DIAGONALS:
-            valid_moves.update(self.scan_direction(from_pos, direction))
+            valid_moves.update(self.scan_direction(direction))
         return valid_moves
 
 class Queen(Piece):
-    def __init__(self, board, color):
-        super().__init__(board, color)
+    def __init__(self, board, color, pos):
+        super().__init__(board, color, pos)
         if color == WHITE:
             self.symbol = "Q"
         elif color == BLACK:
             self.symbol = "q"
 
-    def list_moves(self, from_pos):
+    def list_moves(self):
         valid_moves = set()
         for direction in (CARDINALS + DIAGONALS):
-            valid_moves.update(self.scan_direction(from_pos, direction))
+            valid_moves.update(self.scan_direction(direction))
         return valid_moves
 
 class King(Piece):
-    def __init__(self, board, color):
-        super().__init__(board, color)
+    def __init__(self, board, color, pos):
+        super().__init__(board, color, pos)
         if color == WHITE:
             self.symbol = "K"
         elif color == BLACK:
             self.symbol = "k"
 
-    def list_moves(self, from_pos):
+    def list_moves(self):
         valid_moves = set()
         for direction in (CARDINALS + DIAGONALS):
-            new_pos = (from_pos[0] + direction[0], from_pos[1] + direction[1])
+            new_pos = (self.pos[0] + direction[0], self.pos[1] + direction[1])
             if self.verify_square(new_pos):
                 valid_moves.add(new_pos)
         return valid_moves

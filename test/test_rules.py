@@ -32,49 +32,53 @@ def test_32_pieces_exist():
     assert len(board.board) == 32
 
 def test_knight_valid_moves():
-    white_knight = Knight(board.board, WHITE)
-    valid_moves = white_knight.list_moves((2, 5))
+    white_knight = Knight(board.board, WHITE, (2, 5))
+    valid_moves = white_knight.list_moves()
     assert valid_moves == {(4, 4), (3, 7), (4, 6), (1, 7), (3, 3), (1, 3)}
 
 def test_piece_verify_move():
-    white_knight = Knight(board.board, WHITE)
-    assert white_knight.verify_move((2, 5), (3, 7))
+    white_knight = Knight(board.board, WHITE, (2, 5))
+    assert white_knight.verify_move((3, 7))
 
 def test_pawn_single_or_double_move():
-    pawn = Pawn(board.board, WHITE)
-    valid_moves = pawn.list_moves((4, 2))
+    pawn = Pawn(board.board, WHITE, (4, 2))
+    valid_moves = pawn.list_moves()
     assert valid_moves == {(4, 3), (4, 4)}
 
 def test_pawn_take():
-    pawn = Pawn(board.board, WHITE)
-    valid_moves = pawn.list_moves((4, 6))
+    pawn = Pawn(board.board, WHITE, (4, 6))
+    valid_moves = pawn.list_moves()
     assert valid_moves == {(3, 7), (5, 7)}
 
 def test_scan():
-    rook = Piece(board.board, WHITE)
-    upwards_scan = rook.scan_direction((2, 3), (0, 1))
+    rook = Piece(board.board, WHITE, (2, 3))
+    upwards_scan = rook.scan_direction((0, 1))
     assert upwards_scan == {(2, 4), (2, 5), (2, 6), (2, 7)}
 
 def test_rook():
-    rook = Rook(board.board, WHITE)
-    valid_moves = rook.list_moves((4, 6))
+    rook = Rook(board.board, WHITE, (4, 6))
+    valid_moves = rook.list_moves()
     assert valid_moves == {(4, 4), (4, 3), (4, 5), (7, 6), (2, 6), (5, 6),
                            (8, 6), (3, 6), (6, 6), (1, 6), (4, 7)}
 
 def test_bishop():
-    bishop = Bishop(board.board, WHITE)
-    valid_moves = bishop.list_moves((4, 6))
+    bishop = Bishop(board.board, WHITE, (4, 6))
+    valid_moves = bishop.list_moves()
     assert valid_moves == {(2, 4), (5, 5), (3, 5), (3, 7), (1, 3), (6, 4),
                            (5, 7), (7, 3)}
 
 def test_queen():
-    queen = Queen(board.board, WHITE)
-    valid_moves = queen.list_moves((4, 6))
+    queen = Queen(board.board, WHITE, (4, 6))
+    valid_moves = queen.list_moves()
     assert valid_moves == {(4, 4), (4, 3), (4, 5), (7, 6), (2, 6), (5, 6),
         (8, 6), (3, 6), (6, 6), (1, 6), (4, 7), (2, 4), (5, 5), (3, 5),
         (3, 7), (1, 3), (6, 4), (5, 7), (7, 3)}
 
 def test_king_without_check():
-    king = King(board.board, WHITE)
-    valid_moves = king.list_moves((5, 3))
+    king = King(board.board, WHITE, (5, 3))
+    valid_moves = king.list_moves()
     assert valid_moves == {(4, 4), (4, 3), (5, 4), (6, 4), (6, 3)}
+
+#take piece that would check
+#check test king move
+#check test exposing king
