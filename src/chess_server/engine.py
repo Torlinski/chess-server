@@ -133,6 +133,25 @@ class Board:
         Return True if a position would be in check for a king of a certain color
         """
         #should be scanning out from the position
+
+        #Imaginary king in said position (used for things like castling)
+        CARDINAL_THREATS_LONG = {WHITE: ['r', 'q']],
+                                 BLACK: ['R', 'Q']]}
+        CARDINAL_THREATS_SHORT = {WHITE: ['k']],
+                                  BLACK: ['K']]}
+        DIAGONAL_THREATS_LONG = {WHITE: ['b', 'q'],
+                                 BLACK: ['B', 'Q']}
+        DIAGONAL_THREATS_SHORT = {WHITE: ['k', 'p'],
+                                  BLACK: ['K', 'P']}
+        king = King(self.board, color, pos)
+
+        for direction in CARDINALS:
+            scan_results = list(king.scan_direction(direction))
+            for pos in scan_results:
+                if self.board.get(pos): #not empty
+                    if self.board[pos].symbol in (CARDINAL_THREATS[color]):
+                        if 
+
         for pos, piece in self.board.items():
             if color == WHITE:
                 if piece.symbol.islower():
@@ -198,11 +217,47 @@ class Piece:
             pos = (pos[0] + direction[0], pos[1] + direction[1])
         if self.verify_square(pos):
             valid_moves.add(pos)
-
         return valid_moves
 
+    def scan_king_direction(self, direction):
+
+
     def shielding_king(self):
-        pass
+        """
+        Returns possible moves to that keep shielding the king,
+        protecting him from check, or False if not shielding
+
+        Returns:
+            list of possible moves that prevent check
+            or False if not shielding
+        """
+        if self.color == WHITE:
+            cardinal_threats = ['r', 'q']
+            diagonal_threats = ['b', 'q']
+        elif self.color == BLACK:
+            cardinal_threats = ['R', 'Q']
+            diagonal_threats = ['B', 'Q']
+        for direction in CARDINALS:
+            if self.scan_king_direction(direction):#if alligned with king
+                king_scan = self.scan_king_direction(direction)
+                opposite_direction = (component*-1 for component in direction)
+                enemy_scan = self.scan_direction(opposite_direction)
+                for pos in list(scan_results):
+                    if self.board.get(pos):
+                        if self.board[pos].symbol in cardinal_threats:
+                            return king_scan + enemy_scan
+                return False
+
+        for direction in DIAGONALS:
+            if self.scan_king_direction(direction):#if alligned with king
+                king_scan = self.scan_king_direction(direction)
+                opposite_direction = (component*-1 for component in direction)
+                enemy_scan = self.scan_direction(opposite_direction)
+                for pos in list(scan_results):
+                    if self.board.get(pos):
+                        if self.board[pos].symbol in diagonal_threats:
+                            return king_scan + enemy_scan
+                return False
         
     @staticmethod
     def _in_bounds(pos):
