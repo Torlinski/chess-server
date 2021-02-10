@@ -1,0 +1,13 @@
+Requires python3 and pip. Install these on your OS if necessary.
+
+First create a virtual environment with:
+python3 -m venv venv
+
+On Windows, run:
+venv/Scripts/activate.bat
+
+On Unix or MacOS, run:
+source venv/bin/activate
+
+To install the necessary libraries with pip, run:
+pip install -r requirements.txt
