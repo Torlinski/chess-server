@@ -6,7 +6,7 @@ BLACK="black"
 CARDINALS = ((1, 0), (0, -1), (-1, 0), (0, 1))
 DIAGONALS = ((1, 1), (1, -1), (-1, -1), (-1, 1))
 PIECES = ["P", "R", "C", "B", "Q", "K"]
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 class Board:
     def __init__(self):
@@ -131,6 +131,7 @@ class Board:
     def add_to_history(self, from_pos, to_pos, check_enemy_king):
         """
         Adds to move_history, appends:
+            move number (from 1)
             original position tuple,
             select piece symbol,
             target position tuple,
@@ -138,6 +139,7 @@ class Board:
             Bool whether enemy king is put in check
         """
         self.move_history.append([
+            len(self.move_history) + 1,
             from_pos,
             self.board[from_pos].symbol,
             to_pos,
