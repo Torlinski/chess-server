@@ -55,6 +55,9 @@ class Board:
     def move_piece(self, from_pos, to_pos):
         """
         Moves piece if move is valid with piece + check rules
+        Does this by copying the board, and checking if carrying out the move
+        results in a valid configuration, replacing the board with the copy
+        and adding to self.move_history if true, and reverting if not.
 
         Arguments:
             from_pos: tuple in form (x, y) where x is current column of the 
@@ -67,7 +70,7 @@ class Board:
 
         """
         if not self.board.get(from_pos):
-            logging.debug("No piece in from position")
+            logging.debug("No piece in selected position")
             return False
         if self.board[from_pos].color == self.last_moved_color:
             logging.debug("Attempting to move wrong color")
@@ -76,9 +79,10 @@ class Board:
             logging.debug(f"Move from {from_pos} to {to_pos} in piece valid moves")
             #going to try move and revert if puts king in check
             Board_copy = deepcopy(self)
-            Board_copy.board[to_pos] = Board_copy.board[from_pos]
-            Board_copy.board[to_pos].pos = to_pos
-            del Board_copy.board[from_pos]
+            if self._move_not_castling(from_pos, to_pos):
+                Board_copy._force_move_piece(from_pos, to_pos)
+            else:
+                Board_copy._force_castling(from_pos, to_pos)
             Board_copy.last_moved_color = Board_copy.board[to_pos].color
             if not Board_copy.king_in_check(Board_copy.last_moved_color):
                 logging.debug(f"Move does not place own king in check")
@@ -89,6 +93,40 @@ class Board:
                 return True
             logging.debug(f"Move places own king in check")
             return False
+
+    def _force_move_piece(self, from_pos, to_pos):
+        """
+        Moves a piece regardless of the moves validity
+        """
+        self.board[to_pos] = self.board[from_pos]
+        self.board[from_pos].pos = to_pos
+        if self.board[to_pos].symbol in ('K', 'k', 'R', 'r'):
+            self.board[to_pos].has_moved = True
+        del self.board[from_pos]
+
+    def _move_not_castling(self, from_pos, to_pos):
+        """
+        Returns true if move not castling
+        """
+        castling_moves = [
+            ((5, 1), (7, 1)),
+            ((5, 1), (3, 1)),
+            ((5, 8), (7, 8)),
+            ((5, 8), (3, 8))
+        ]
+        if self.board[from_pos].symbol in ('K', 'k'):
+            if (from_pos, to_pos) in castling_moves:
+                return False
+        return True
+
+    def _force_castling(self, from_pos, to_pos):
+        """
+        Completes castling regardless of move validity
+        """
+        from_rook_pos = (8 if to_pos[0] == 7 else 1, to_pos[1])
+        to_rook_pos = (6 if to_pos[0] == 7 else 4, to_pos[1])
+        self._force_move_piece(from_pos, to_pos) #moves king
+        self._force_move_piece(from_rook_pos, to_rook_pos)
 
     def add_to_history(self, from_pos, to_pos, check_enemy_king):
         """
@@ -286,6 +324,7 @@ class Pawn(Piece):
 class Rook(Piece):
     def __init__(self, board, color, pos):
         super().__init__(board, color, pos)
+        self.has_moved = False
         if color == WHITE:
             self.symbol = "R"
         elif color == BLACK:
@@ -348,6 +387,7 @@ class Queen(Piece):
 class King(Piece):
     def __init__(self, board, color, pos):
         super().__init__(board, color, pos)
+        self.has_moved = False
         if color == WHITE:
             self.symbol = "K"
         elif color == BLACK:
@@ -355,8 +395,29 @@ class King(Piece):
 
     def list_moves(self):
         valid_moves = set()
+        valid_moves.update(self.list_castling_moves())
         for direction in (CARDINALS + DIAGONALS):
             new_pos = (self.pos[0] + direction[0], self.pos[1] + direction[1])
             if self.verify_square(new_pos):
                 valid_moves.add(new_pos)
         return valid_moves
+
+    def list_castling_moves(self):
+        castling_moves = set()
+        if not self.has_moved:
+            corner_pos = (1, self.pos[1])
+            if (not self.board.get((2, self.pos[1])) and
+                not self.board.get((3, self.pos[1])) and
+                not self.board.get((4, self.pos[1])) and
+                self.board.get(corner_pos)):
+                if self.board[corner_pos].symbol in ("R", "r"):
+                    if not self.board.get(self.pos[0], 1).has_moved:
+                        castling_moves.add((3, self.pos[1]))
+            corner_pos = (8, self.pos[1])
+            if (not self.board.get((7, self.pos[1])) and
+                not self.board.get((6, self.pos[1])) and
+                self.board.get(corner_pos)):
+                if self.board[corner_pos].symbol in ("R", "r"):
+                    if not self.board.get(corner_pos).has_moved:
+                        castling_moves.add((7, self.pos[1]))
+        return castling_moves

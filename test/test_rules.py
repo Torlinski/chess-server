@@ -114,6 +114,10 @@ def test_move_to_shield_king():
     print(board.display_board())
     assert board.board[(7, 6)].symbol == 'p'
 
-#take piece that would check
-#check test king move
-#check test exposing king
+def test_castling():
+    board.move_piece((7, 1), (6, 3))
+    board.move_piece((5, 7), (5, 5))
+    board.move_piece((5, 1), (7, 1))
+    print(board.display_board())
+    assert board.board[(7, 1)].symbol == 'K'
+    assert board.board[(6, 1)].symbol == 'R'
