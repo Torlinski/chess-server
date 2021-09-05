@@ -6,8 +6,8 @@ import logging
 import socket
 import sys
 
-from parser import valid_msg, msg_to_move, write_msg
-from engine import Board
+from src.chess_server.parser import valid_msg, msg_to_move, write_msg
+from src.chess_server.engine import Board
 
 
 parser = argparse.ArgumentParser(description="Chess Server")
@@ -38,6 +38,7 @@ def run():
 
 def run_local():
     board = Board()
+    send_reply(board.display_board())
     while True:
         msg = get_msg()
         if not valid_msg(msg):
