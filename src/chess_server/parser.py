@@ -31,7 +31,7 @@ def write_msg(move):
     if castling_check(piece, case_src, case_dest):
         msg = f"{X}. {piece} does a {castling_type} "\
               f"castling from {case_src} to {case_dest}{check}"
-    elif move[4]:
+    elif target:
         msg = f"{X}. {piece} on {case_src} takes {target} "\
               f"on {case_dest}{check}"
     else:
